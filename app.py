@@ -2,6 +2,7 @@
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 import google.generativeai as genai
+from google.api_core.exceptions import ResourceExhausted
 from dotenv import load_dotenv
 import os
 import json
@@ -142,6 +143,9 @@ REGLAS:
         logger.info("✅ Pregunta generada exitosamente")
         return jsonify(data_pregunta), 200
 
+    except ResourceExhausted as e:
+        logger.error(f"API rate limit exceeded: {e}")
+        return jsonify({"error": "Límite de API excedido. Por favor, inténtalo de nuevo más tarde."}), 429
     except json.JSONDecodeError as e:
         logger.error(f"Error decodificando JSON: {e}")
         return jsonify({"error": "Error procesando respuesta de IA"}), 500
@@ -224,7 +228,7 @@ REGLAS CRÍTICAS:
             return jsonify({"error": "Formato de respuesta inválido"}), 500
 
         preguntas = data_preguntas["preguntas"]
-        
+
         if len(preguntas) != cantidad:
             logger.warning(f"Se generaron {len(preguntas)} preguntas en lugar de {cantidad}")
 
@@ -236,6 +240,9 @@ REGLAS CRÍTICAS:
             "dificultad": dificultad
         }), 200
 
+    except ResourceExhausted as e:
+        logger.error(f"API rate limit exceeded: {e}")
+        return jsonify({"error": "Límite de API excedido. Por favor, inténtalo de nuevo más tarde."}), 429
     except json.JSONDecodeError as e:
         logger.error(f"Error decodificando JSON: {e}")
         return jsonify({"error": "Error procesando respuesta de IA"}), 500
@@ -280,6 +287,9 @@ Sé positivo, constructivo y pedagógico."""
 
         return jsonify(feedback), 200
 
+    except ResourceExhausted as e:
+        logger.error(f"API rate limit exceeded: {e}")
+        return jsonify({"error": "Límite de API excedido. Por favor, inténtalo de nuevo más tarde."}), 429
     except Exception as e:
         logger.error(f"Error generando retroalimentación: {e}")
         return jsonify({"error": str(e)}), 500
@@ -293,13 +303,21 @@ def health_check():
             generation_config=genai.types.GenerationConfig(max_output_tokens=10)
         )
         ai_ok = "OK" in test_response.text.upper()
-        
+
         return jsonify({
             "status": "healthy" if ai_ok else "degraded",
             "server": "running",
             "ai_api": "connected" if ai_ok else "error",
             "model": "gemini-2.0-flash-exp"
         })
+    except ResourceExhausted as e:
+        logger.error(f"API rate limit exceeded in health check: {e}")
+        return jsonify({
+            "status": "degraded",
+            "server": "running",
+            "ai_api": "rate_limited",
+            "error": "Límite de API excedido"
+        }), 200
     except Exception as e:
         return jsonify({
             "status": "degraded",
