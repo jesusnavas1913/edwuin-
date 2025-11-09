@@ -6,27 +6,22 @@ import os
 import json
 import re
 import logging
-import time
-import base64
-import io
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-import matplotlib.pyplot as plt
 
-# ============================================================
-# CONFIGURACIÓN
-# ============================================================
+# Configurar logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
+# Cargar variables de entorno
 load_dotenv()
 
+# Configurar Flask
 app = Flask(__name__)
 CORS(app)
 
-# Configuración de API
+# Configuración
 API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 PORT = int(os.getenv("PORT", 5000))
 
@@ -34,6 +29,7 @@ if not API_KEY:
     logger.error("❌ GEMINI_API_KEY no configurada en .env")
     raise ValueError("Se requiere GEMINI_API_KEY en archivo .env")
 
+# Configurar Gemini
 try:
     genai.configure(api_key=API_KEY)
     model = genai.GenerativeModel("gemini-2.0-flash-exp")
@@ -42,61 +38,36 @@ except Exception as e:
     logger.error(f"Error configurando Gemini: {e}")
     raise
 
-# ============================================================
-# UTILIDADES
-# ============================================================
 def extraer_json(texto):
     """Extrae y limpia JSON de la respuesta de IA"""
     texto = texto.strip()
-
+    
+    # Remover bloques de código markdown
     if texto.startswith('```json'):
         texto = texto[7:].strip()
     elif texto.startswith('```'):
         texto = texto[3:].strip()
-
+    
     if texto.endswith('```'):
         texto = texto[:-3].strip()
-
+    
+    # Buscar JSON en el texto
     match = re.search(r'\{.*\}', texto, re.DOTALL)
     if match:
         json_text = match.group(0)
+        # Limpiar comas finales
         json_text = re.sub(r',\s*([}\]])', r'\1', json_text)
         return json_text
-
+    
     return texto
 
-def retry_with_backoff(func, max_retries=3, base_delay=1):
-    """Retry function con exponential backoff para rate limits"""
-    for attempt in range(max_retries):
-        try:
-            return func()
-        except Exception as e:
-            if "429" in str(e) or "Resource exhausted" in str(e):
-                if attempt < max_retries - 1:
-                    delay = base_delay * (2 ** attempt)
-                    logger.warning(f"Rate limit, reintentando en {delay}s (intento {attempt + 1}/{max_retries})")
-                    time.sleep(delay)
-                    continue
-                else:
-                    logger.error(f"Max retries alcanzado: {e}")
-                    raise e
-            else:
-                raise e
-
-# ============================================================
-# ENDPOINTS PRINCIPALES
-# ============================================================
 @app.route('/')
 def home():
     return render_template('index.html')
 
-@app.route('/analysis')
-def analysis():
-    return render_template('generado.html')
-
 @app.route('/api/pregunta', methods=['POST'])
 def generar_pregunta():
-    """Genera una pregunta tipo ICFES individual"""
+    """Genera una pregunta tipo ICFES"""
     try:
         data = request.get_json()
         if not data:
@@ -141,16 +112,13 @@ REGLAS:
 4. La explicación debe ser pedagógica y constructiva
 5. Responde SOLO con el JSON, sin texto adicional"""
 
-        def generate_single():
-            return model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0.7,
-                    max_output_tokens=1500
-                )
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.7,
+                max_output_tokens=1500
             )
-
-        response = retry_with_backoff(generate_single)
+        )
 
         if not response or not response.text:
             logger.error("Respuesta vacía de Gemini")
@@ -237,16 +205,13 @@ REGLAS CRÍTICAS:
 4. Numera las preguntas desde 1 hasta {cantidad}
 5. Responde SOLO con el JSON válido, sin texto adicional"""
 
-        def generate_multiple():
-            return model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0.7,
-                    max_output_tokens=4000
-                )
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.7,
+                max_output_tokens=4000
             )
-
-        response = retry_with_backoff(generate_multiple)
+        )
 
         if not response or not response.text:
             return jsonify({"error": "No se pudo generar las preguntas"}), 500
@@ -308,10 +273,7 @@ Proporciona retroalimentación en formato JSON:
 
 Sé positivo, constructivo y pedagógico."""
 
-        def generate_feedback():
-            return model.generate_content(prompt)
-
-        response = retry_with_backoff(generate_feedback)
+        response = model.generate_content(prompt)
         json_text = extraer_json(response.text)
         feedback = json.loads(json_text)
 
@@ -325,15 +287,12 @@ Sé positivo, constructivo y pedagógico."""
 def health_check():
     """Endpoint de salud del servidor"""
     try:
-        def test_ai():
-            return model.generate_content(
-                "Responde solo 'OK'",
-                generation_config=genai.types.GenerationConfig(max_output_tokens=10)
-            )
-
-        test_response = retry_with_backoff(test_ai)
+        test_response = model.generate_content(
+            "Responde solo 'OK'",
+            generation_config=genai.types.GenerationConfig(max_output_tokens=10)
+        )
         ai_ok = "OK" in test_response.text.upper()
-
+        
         return jsonify({
             "status": "healthy" if ai_ok else "degraded",
             "server": "running",
@@ -348,182 +307,18 @@ def health_check():
             "error": str(e)
         }), 200
 
-@app.route('/analyze-document', methods=['POST'])
-def analyze_document():
-    """Analiza un documento de examen subido"""
-    try:
-        if 'file' not in request.files:
-            return jsonify({"error": "No se subió ningún archivo"}), 400
-
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({"error": "No se seleccionó ningún archivo"}), 400
-
-        # Validar tipo de archivo
-        allowed_extensions = {'pdf', 'doc', 'docx'}
-        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
-        if file_ext not in allowed_extensions:
-            return jsonify({"error": "Tipo de archivo no permitido. Solo PDF y Word"}), 400
-
-        # Leer contenido del archivo
-        text_content = ""
-        if file_ext == 'pdf':
-            import pdfplumber
-            with pdfplumber.open(file) as pdf:
-                for page in pdf.pages:
-                    text_content += page.extract_text() or ""
-        elif file_ext in {'doc', 'docx'}:
-            from docx import Document
-            doc = Document(file)
-            for para in doc.paragraphs:
-                text_content += para.text + "\n"
-
-        if not text_content.strip():
-            return jsonify({"error": "No se pudo extraer texto del archivo"}), 400
-
-        # Prompt para analizar el examen con Gemini
-        prompt = f"""Eres un experto en análisis de exámenes ICFES. Analiza el siguiente contenido de un examen subido y extrae:
-
-1. Cada pregunta numerada
-2. Las opciones (A, B, C, D)
-3. La respuesta elegida por el estudiante (si se indica)
-4. La respuesta correcta (si se indica)
-5. Genera retroalimentación detallada para cada pregunta
-
-Contenido del examen:
-{text_content[:4000]}  # Limitar para token limit
-
-Responde en formato JSON exacto:
-{{
-    "success": true,
-    "metadata": {{
-        "total_items": número_de_preguntas,
-        "file_type": "{file_ext}",
-        "analysis_date": "fecha_actual"
-    }},
-    "analysis": [
-        {{
-            "numero": 1,
-            "pregunta": "texto_completo_pregunta",
-            "opciones": ["A) opción", "B) opción", "C) opción", "D) opción"],
-            "respuesta_elegida": "A",
-            "respuesta_correcta": "A",
-            "retroalimentacion": "Análisis detallado si es correcta o no, explicación",
-            "errores_comunes": "Errores típicos en esta pregunta",
-            "sugerencias_mejora": "Consejos para mejorar",
-            "conceptos_clave": "Conceptos importantes involucrados"
-        }}
-        // ... más preguntas
-    ]
-}}
-
-Si no puedes parsear el formato, haz tu mejor esfuerzo para estructurar la información disponible. Responde SOLO con JSON válido."""
-
-        def analyze_exam():
-            return model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0.3,
-                    max_output_tokens=4000
-                )
-            )
-
-        response = retry_with_backoff(analyze_exam)
-        json_text = extraer_json(response.text)
-        analysis_data = json.loads(json_text)
-
-        if "analysis" not in analysis_data:
-            return jsonify({"error": "No se pudo analizar el documento correctamente"}), 500
-
-        logger.info(f"✅ Análisis completado: {len(analysis_data['analysis'])} preguntas procesadas")
-        return jsonify(analysis_data), 200
-
-    except ImportError as e:
-        logger.error(f"Dependencia faltante: {e}")
-        return jsonify({"error": "Dependencias faltantes. Instala pdfplumber y python-docx con: pip install pdfplumber python-docx"}), 500
-    except Exception as e:
-        logger.error(f"Error analizando documento: {e}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/generate-visual', methods=['POST'])
-def generate_visual():
-    """Genera un gráfico visual del análisis"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "Datos JSON requeridos"}), 400
-
-        analysis_data = data.get("analysis_data", "")
-        chart_type = data.get("chart_type", "bar")
-        title = data.get("title", "Análisis de Rendimiento")
-        xlabel = data.get("xlabel", "Categorías")
-        ylabel = data.get("ylabel", "Número de Preguntas")
-
-        # Parsear datos simples del analysis_data
-        lines = analysis_data.split('\n')
-        total = 0
-        correct = 0
-        for line in lines:
-            if 'Total de preguntas analizadas:' in line:
-                total = int(line.split(':')[1].strip())
-            elif 'Respuestas correctas:' in line:
-                correct = int(line.split(':')[1].split('(')[0].strip())
-
-        incorrect = total - correct
-        success_rate = (correct / total * 100) if total > 0 else 0
-
-        # Crear gráfico con matplotlib
-        fig, ax = plt.subplots(figsize=(10, 6))
-        categories = ['Correctas', 'Incorrectas']
-        values = [correct, incorrect]
-        colors = ['#10b981', '#ef4444']
-        bars = ax.bar(categories, values, color=colors)
-        ax.set_title(title, fontsize=16, fontweight='bold')
-        ax.set_ylabel(ylabel)
-        ax.set_xlabel(xlabel)
-
-        # Añadir valores en las barras
-        for bar in bars:
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height + 0.1,
-                    f'{int(height)}', ha='center', va='bottom')
-
-        # Guardar como base64
-        output = io.BytesIO()
-        canvas = FigureCanvas(fig)
-        canvas.print_png(output)
-        image_base64 = base64.b64encode(output.getvalue()).decode('utf-8')
-        plt.close(fig)
-
-        return jsonify({
-            "success": True,
-            "image": f"data:image/png;base64,{image_base64}",
-            "success_rate": f"{success_rate:.1f}%"
-        }), 200
-
-    except Exception as e:
-        logger.error(f"Error generando visual: {e}")
-        return jsonify({"error": str(e)}), 500
-
-# ============================================================
-# INICIO
-# ============================================================
 if __name__ == '__main__':
     print("=" * 60)
-    print("🚀 ICFES PRO - BACKEND GENERADOR DE PREGUNTAS")
+    print("🚀 SIMULADOR ICFES - BACKEND SIMPLIFICADO")
     print("=" * 60)
     print(f"✅ Gemini API: Configurada")
     print(f"🌐 Servidor: http://localhost:{PORT}")
     print("=" * 60)
     print("\n📋 ENDPOINTS DISPONIBLES:")
-    print("   GET  /                    - Página principal (index.html)")
-    print("   GET  /analysis            - Página de análisis de documentos")
-    print("   POST /api/pregunta        - Generar 1 pregunta")
-    print("   POST /api/preguntas-multiples - Generar múltiples preguntas")
-    print("   POST /api/retroalimentacion - Obtener feedback personalizado")
-    print("   POST /analyze-document    - Analizar documento subido")
-    print("   POST /generate-visual     - Generar gráfico")
-    print("   GET  /health              - Estado del servidor")
+    print("   POST /api/pregunta              - Generar 1 pregunta")
+    print("   POST /api/preguntas-multiples   - Generar múltiples preguntas")
+    print("   POST /api/retroalimentacion     - Obtener feedback personalizado")
+    print("   GET  /health                    - Estado del servidor")
     print("=" * 60)
     
     try:
