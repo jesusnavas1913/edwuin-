@@ -1,3 +1,4 @@
+# Simulador ICFES Pro - Generador de preguntas con IA
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 import google.generativeai as genai
