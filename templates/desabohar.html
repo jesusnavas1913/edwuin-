@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICFES Pro - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(168, 85, 247, 0.2) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1000;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+        }
+
+        .logo-container:hover {
+            transform: scale(1.02);
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #fff 0%, #a8b2d1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .user-name {
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-logout:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 100px 40px 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-section {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero-title {
+            font-size: 56px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+            letter-spacing: -2px;
+            line-height: 1.2;
+        }
+
+        .hero-subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 20px;
+            font-weight: 400;
+            margin-bottom: 40px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 32px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.6));
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-number {
+            font-size: 48px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+            animation: fadeInUp 0.8s ease 0.4s both;
+        }
+
+        .section-icon {
+            font-size: 32px;
+            filter: drop-shadow(0 0 15px rgba(102, 126, 234, 0.5));
+        }
+
+        .section-title {
+            font-size: 32px;
+            font-weight: 800;
+            color: white;
+            letter-spacing: -1px;
+        }
+
+        .tools-section {
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease 0.6s both;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 28px;
+        }
+
+        .tool-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 36px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .tool-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+            transform: rotate(45deg);
+            transition: all 0.6s ease;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-12px) scale(1.03);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 30px 80px rgba(102, 126, 234, 0.5);
+        }
+
+        .tool-card:hover::before {
+            opacity: 1;
+        }
+
+        .tool-card:hover::after {
+            left: 100%;
+        }
+
+        .tool-icon {
+            font-size: 56px;
+            margin-bottom: 20px;
+            display: block;
+            filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.6));
+            position: relative;
+            z-index: 1;
+            transition: transform 0.4s ease;
+        }
+
+        .tool-card:hover .tool-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .tool-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tool-description {
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 24px;
+            line-height: 1.6;
+            font-size: 14px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tool-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        }
+
+        .tool-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 36px rgba(102, 126, 234, 0.6);
+        }
+
+        .tool-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(102, 126, 234, 0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 2;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .floating-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: float 15s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 100px 20px 40px;
+            }
+
+            .hero-title {
+                font-size: 36px;
+            }
+
+            .hero-subtitle {
+                font-size: 16px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .section-title {
+                font-size: 24px;
+            }
+        }
+
+        .quick-actions {
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
+            z-index: 1000;
+        }
+
+        .fab-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.6);
+            transition: all 0.3s ease;
+        }
+
+        .fab-button:hover {
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: 0 12px 48px rgba(102, 126, 234, 0.8);
+        }
+
+        .bg-animated {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #0f0c29, #302b63, #24243e, #0f0c29);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            z-index: -2;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+  <div class="bg-animated"></div>
+  <div class="grid-overlay"></div>
+  <div class="floating-particles" id="particles"></div>
+
+    <nav class="navbar">
+        <div class="logo-container" onclick="window.location.href='/dashboard'">
+            <div class="logo-icon">🎓</div>
+            <div class="logo-text">ICFES Pro</div>
+        </div>
+        <div class="user-section">
+            <div class="user-avatar" id="userAvatar">P</div>
+            <span class="user-name" id="userName">Profesor</span>
+            <button class="btn-logout" id="logoutBtn">Cerrar Sesión</button>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="hero-section">
+            <h1 class="hero-title">Tu Centro de Aprendizaje</h1>
+            <p class="hero-subtitle">Herramientas inteligentes para transformar tu educación</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-number" id="totalEvaluations">0</div>
+                <div class="stat-label">Evaluaciones</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">❓</div>
+                <div class="stat-number" id="totalQuestions">0</div>
+                <div class="stat-label">Preguntas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-number" id="successRate">0%</div>
+                <div class="stat-label">Tasa de éxito</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-number" id="studyHours">0</div>
+                <div class="stat-label">Horas</div>
+            </div>
+        </div>
+
+        <div class="tools-section">
+            <div class="section-header">
+                <span class="section-icon">🚀</span>
+                <h2 class="section-title">Herramientas Principales</h2>
+            </div>
+            <div class="tools-grid">
+                <div class="tool-card" onclick="openTool('/analisis')">
+                    <span class="tool-badge">Popular</span>
+                    <span class="tool-icon">📄</span>
+                    <div class="tool-title">Análisis de PDF</div>
+                    <div class="tool-description">Sube tus evaluaciones y obtén retroalimentación inteligente instantánea con análisis detallado</div>
+                    <button class="tool-btn">Comenzar Análisis</button>
+                </div>
+
+                <div class="tool-card" onclick="openTool('#')">
+                    <span class="tool-badge">IA Avanzada</span>
+                    <span class="tool-icon">🤖</span>
+                    <div class="tool-title">Entrenador de IA</div>
+                    <div class="tool-description">Entrena tu IA con PDFs y genera preguntas personalizadas con análisis gráfico detallado</div>
+                    <button class="tool-btn">Entrenar IA</button>
+                </div>
+
+
+
+                <div class="tool-card" onclick="openTool('/simulator')">
+                    <span class="tool-badge">Nuevo</span>
+                    <span class="tool-icon">🎯</span>
+                    <div class="tool-title">Simulador ICFES</div>
+                    <div class="tool-description">Practica con exámenes reales en un ambiente simulado con cronómetro y resultados instantáneos</div>
+                    <button class="tool-btn">Iniciar Simulacro</button>
+                </div>
+
+                <div class="tool-card" onclick="openTool('#')">
+                    <span class="tool-icon">📈</span>
+                    <div class="tool-title">Analytics Avanzado</div>
+                    <div class="tool-description">Visualiza tu progreso con gráficos interactivos e identifica patrones de aprendizaje</div>
+                    <button class="tool-btn">Ver Estadísticas</button>
+                </div>
+
+                <div class="tool-card" onclick="openTool('#')">
+                    <span class="tool-icon">🧠</span>
+                    <div class="tool-title">Asistente IA</div>
+                    <div class="tool-description">Tu tutor personal con inteligencia artificial para resolver dudas en tiempo real</div>
+                    <button class="tool-btn">Chatear Ahora</button>
+                </div>
+
+                <div class="tool-card" onclick="openTool('#')">
+                    <span class="tool-icon">📚</span>
+                    <div class="tool-title">Biblioteca Digital</div>
+                    <div class="tool-description">Accede a miles de recursos, resúmenes y material de estudio organizado por temas</div>
+                    <button class="tool-btn">Explorar Contenido</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tools-section">
+            <div class="section-header">
+                <span class="section-icon">👨‍🏫</span>
+                <h2 class="section-title">Para Profesores</h2>
+            </div>
+            <div class="tools-grid">
+                <div class="tool-card" onclick="openTool('#')">
+                    <span class="tool-icon">👥</span>
+                    <div class="tool-title">Gestión de Clase</div>
+                    <div class="tool-description">Administra tus estudiantes, asigna tareas y monitorea el progreso grupal</div>
+                    <button class="tool-btn">Ver Panel</button>
+                </div>
+
+                <div class="tool-card" onclick="openTool('#')">
+                    <span class="tool-icon">📋</span>
+                    <div class="tool-title">Creador de Evaluaciones</div>
+                    <div class="tool-description">Diseña evaluaciones completas con banco de preguntas y calificación automática</div>
+                    <button class="tool-btn">Crear Evaluación</button>
+                </div>
+
+                <div class="tool-card" onclick="openTool('#')">
+                    <span class="tool-icon">📊</span>
+                    <div class="tool-title">Reportes de Rendimiento</div>
+                    <div class="tool-description">Genera reportes detallados individuales y grupales con insights accionables</div>
+                    <button class="tool-btn">Ver Reportes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="quick-actions">
+        <button class="fab-button" onclick="alert('Acceso rápido a herramientas')">+</button>
+    </div>
+
+    <script>
+        // Create floating particles
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 15 + 's';
+            particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        // Tool navigation
+        function openTool(url) {
+            if (url !== '#') {
+                window.location.href = url;
+            } else {
+                alert('Esta funcionalidad estará disponible próximamente.');
+            }
+        }
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                window.location.href = '/login';
+            }
+        });
+
+        // Load user data and stats
+        document.addEventListener('DOMContentLoaded', function() {
+            const userName = 'Profesor';
+            document.getElementById('userName').textContent = userName;
+            document.getElementById('userAvatar').textContent = userName.charAt(0).toUpperCase();
+
+            // Simulate loading stats with animation
+            const stats = {
+                evaluations: 47,
+                questions: 1250,
+                successRate: '87%',
+                studyHours: 156
+            };
+
+            animateValue('totalEvaluations', 0, stats.evaluations, 2000);
+            animateValue('totalQuestions', 0, stats.questions, 2000);
+            animateValue('studyHours', 0, stats.studyHours, 2000);
+            
+            setTimeout(() => {
+                document.getElementById('successRate').textContent = stats.successRate;
+            }, 1000);
+        });
+
+        function animateValue(id, start, end, duration) {
+            const obj = document.getElementById(id);
+            const range = end - start;
+            const increment = end > start ? 1 : -1;
+            const stepTime = Math.abs(Math.floor(duration / range));
+            let current = start;
+
+            const timer = setInterval(() => {
+                current += increment;
+                obj.textContent = current;
+                if (current === end) {
+                    clearInterval(timer);
+                }
+            }, stepTime);
+        }
+
+        // Add scroll effects
+        let lastScroll = 0;
+        window.addEventListener('scroll', () => {
+            const navbar = document.querySelector('.navbar');
+            const currentScroll = window.pageYOffset;
+
+            if (currentScroll > lastScroll && currentScroll > 100) {
+                navbar.style.transform = 'translateY(-100%)';
+            } else {
+                navbar.style.transform = 'translateY(0)';
+            }
+            lastScroll = currentScroll;
+        });
+    </script>
+</body>
+</html>

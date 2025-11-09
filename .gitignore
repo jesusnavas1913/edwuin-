@@ -1,0 +1,17 @@
+# Environment variables
+.env
+
+# Python virtual environment
+.venv/
+venv/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
